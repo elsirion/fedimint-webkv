@@ -5,11 +5,11 @@ use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
 use anyhow::Result;
-use async_trait::async_trait;
 use fedimint_core::db::{
     IDatabaseTransactionOps, IDatabaseTransactionOpsCore, IRawDatabase, IRawDatabaseTransaction,
     PrefixStream,
 };
+use fedimint_core::{apply, async_trait_maybe_send};
 
 pub struct WebDb(webkv::Database);
 
@@ -25,6 +25,12 @@ impl WebDb {
     pub fn new_memory() -> WebDb {
         WebDb(webkv::Database::new(Arc::new(webkv::MemStorage::default())))
     }
+
+    #[cfg(target_family = "wasm")]
+    pub async fn new_idb(db_name: &str, store_name: &str) -> Result<WebDb> {
+        let db = webkv::Database::new(Arc::new(webkv::IdbStorage::new(db_name, store_name).await?));
+        Ok(WebDb(db))
+    }
 }
 
 impl fmt::Debug for WebDbTransaction {
@@ -33,7 +39,7 @@ impl fmt::Debug for WebDbTransaction {
     }
 }
 
-#[async_trait]
+#[apply(async_trait_maybe_send!)]
 impl IRawDatabase for WebDb {
     type Transaction<'a> = WebDbTransaction;
     async fn begin_transaction<'a>(&'a self) -> WebDbTransaction {
@@ -41,7 +47,7 @@ impl IRawDatabase for WebDb {
     }
 }
 
-#[async_trait]
+#[apply(async_trait_maybe_send!)]
 impl IDatabaseTransactionOpsCore for WebDbTransaction {
     async fn raw_insert_bytes(&mut self, key: &[u8], value: &[u8]) -> Result<Option<Vec<u8>>> {
         let old_value = self.0.get(key).await?;
@@ -82,7 +88,7 @@ impl IDatabaseTransactionOpsCore for WebDbTransaction {
     }
 }
 
-#[async_trait]
+#[apply(async_trait_maybe_send!)]
 impl IDatabaseTransactionOps for WebDbTransaction {
     async fn set_tx_savepoint(&mut self) -> Result<()> {
         unimplemented!()
@@ -93,7 +99,7 @@ impl IDatabaseTransactionOps for WebDbTransaction {
     }
 }
 
-#[async_trait]
+#[apply(async_trait_maybe_send!)]
 impl IRawDatabaseTransaction for WebDbTransaction {
     async fn commit_tx(self) -> Result<()> {
         self.0.commit().await
