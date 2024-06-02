@@ -1,0 +1,32 @@
+[package]
+name = "fedimint-webkv"
+version = "0.3.0"
+authors = ["elsiron"]
+edition = "2021"
+description = "fedimint-webkv provides a IndexedDB-based database implementation for Fedimint."
+license = "MIT"
+repository = "https://github.com/elsirion/fedimint-webkv"
+
+[lib]
+name = "fedimint_webkv"
+path = "src/lib.rs"
+
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "tokio_unstable"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.86"
+async-trait = "0.1.80"
+fedimint-core = "0.3"
+futures = "0.3.30"
+tracing = "0.1.40"
+webkv = { git = "https://github.com/elsirion/webkv", rev="20a25371923222aa358853dc40fb5b541359a2f6" }
+
+[dev-dependencies]
+tempfile = "3.10.1"
+tracing-subscriber = { version = "0.3.18", features = [ "env-filter" ] }
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "sync", "time"] }
